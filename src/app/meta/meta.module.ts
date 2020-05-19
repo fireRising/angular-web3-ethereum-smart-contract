@@ -13,6 +13,9 @@ import {
 } from '@angular/material';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import { MatTableModule } from '@angular/material/table';
+import {MatStepperModule} from '@angular/material/stepper';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+
 
 @NgModule({
   imports: [
@@ -26,8 +29,10 @@ import { MatTableModule } from '@angular/material/table';
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
+    MatStepperModule,
     RouterModule,
-    UtilModule
+    UtilModule,
+    ReactiveFormsModule
   ],
   declarations: [MetaSenderComponent],
   exports: [MetaSenderComponent]

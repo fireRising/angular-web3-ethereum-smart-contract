@@ -7,6 +7,7 @@ contract Shop {
   product[] public allProducts;
 
   event Transfer(address indexed _from, string _productName, uint _purchaseId);
+  event Register(address indexed _from);
 
   constructor() public {
     owner = msg.sender;
@@ -55,6 +56,8 @@ contract Shop {
     users[msg.sender].name = _name;
     users[msg.sender].email = _email;
     users[msg.sender].isCreated = true;
+
+    emit Register(msg.sender);
   }
 
   function buyProduct(uint _productId) public payable {
