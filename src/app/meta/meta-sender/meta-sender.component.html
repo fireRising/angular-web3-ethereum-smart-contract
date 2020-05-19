@@ -1,0 +1,53 @@
+<mat-card>
+  <mat-card-header>Balance</mat-card-header>
+  <br>
+  <mat-card-content>
+    <mat-form-field id="address-selector" class="address-field">
+      <mat-select name="account" (selectionChange)="refreshBalance()" [(value)]="model.account" placeholder="Address">
+        <mat-option *ngFor="let account of accounts" [value]="account">{{account}}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <p>You have <span id="balance">{{model.balance}}</span> ether</p>
+  </mat-card-content>
+</mat-card>
+<mat-card>
+  <mat-card-header>Registration</mat-card-header>
+  <mat-card-content>
+    <mat-form-field>
+      <input type="text" matInput placeholder="User name" (change)="setUserName($event)">
+    </mat-form-field>
+    <br>
+    <mat-form-field>
+      <input type="text" matInput placeholder="Email" (change)="setUserEmail($event)">
+    </mat-form-field>
+  <br>
+  <button mat-raised-button color="primary" id="send" (click)="userRegistration()">Sign Up</button>
+  </mat-card-content>
+  <br>
+  <mat-card-header>List of available tariff plans</mat-card-header>
+  <mat-card-content>
+    <mat-table #table [dataSource]="dataSource" matSort>
+      <ng-container matColumnDef="{{column.id}}" *ngFor="let column of columnNames">
+        <mat-header-cell *matHeaderCellDef mat-sort-header> {{column.value}}</mat-header-cell>
+        <mat-cell *matCellDef="let element"> {{element[column.id]}}</mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+    </mat-table>
+  </mat-card-content>
+</mat-card>
+<mat-card>
+  <mat-card-header>Buy tariff plan</mat-card-header>
+  <mat-card-content>
+    <mat-form-field>
+      <input type="number" matInput id="num" placeholder="No." (change)="setNum($event)">
+    </mat-form-field>
+    <mat-form-field>
+      <input type="text" matInput id="amount" placeholder="Amount" (change)="setAmount($event)">
+    </mat-form-field>
+    <br>
+    <button mat-raised-button color="primary" id="send" (click)="sendCoin()">Send MetaCoin</button>
+  </mat-card-content>
+</mat-card>
+
