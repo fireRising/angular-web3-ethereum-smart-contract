@@ -28,7 +28,7 @@ const ELEMENT_DATA: Element[] = [
 
 
 export class MetaSenderComponent implements OnInit {
-  isLinear = false;
+  isLinear = true;
   registerNext = true;
   buyNext = true;
 

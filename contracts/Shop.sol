@@ -82,8 +82,4 @@ contract Shop {
       userOrders[msg.sender][_index].purchaseId
     );
   }
-
-  function getAccountBalance() public view returns (uint) {
-    return msg.sender.balance;
-  }
 }
