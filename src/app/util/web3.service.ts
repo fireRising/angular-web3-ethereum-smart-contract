@@ -69,4 +69,21 @@ export class Web3Service {
 
     this.ready = true;
   }
+
+  getAccountInfo() {
+    return new Promise((resolve, reject) => {
+      window.web3.eth.getCoinbase(function(err, account) {
+
+        if (err === null) {
+          window.web3.eth.getBalance(account, function(error, balance) {
+            if (error === null) {
+              return resolve({fromAccount: account, balance: (window.web3.fromWei(balance, 'ether')).toNumber()});
+            } else {
+              return reject({fromAccount: 'error', balance: 0});
+            }
+          });
+        }
+      });
+    });
+  }
 }

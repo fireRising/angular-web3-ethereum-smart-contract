@@ -1,11 +1,24 @@
-import { Component, OnInit, ViewChild, NgModule } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Web3Service } from '../../util/web3.service';
 import { MatSnackBar } from '@angular/material';
 
-import { MatTableDataSource } from '@angular/material/table';
+import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 
 declare let require: any;
 const shop_artifacts = require('../../../../build/contracts/Shop.json');
+
+export interface Element {
+  position: number;
+  name: string;
+  description: string;
+  price: string;
+}
+
+const ELEMENT_DATA: Element[] = [
+  { position: 1, name: 'Standard', description: '50 GB available space', price: '1 eth'},
+  { position: 2, name: 'Advanced', description: '500 GB available space', price: '2 eth'},
+  { position: 3, name: 'Enterprise', description: '5 TB available space', price: '3 eth'}
+];
 
 @Component({
   selector: 'app-meta-sender',
@@ -15,50 +28,30 @@ const shop_artifacts = require('../../../../build/contracts/Shop.json');
 
 
 export class MetaSenderComponent implements OnInit {
+  isLinear = true;
+  registerNext = true;
+  buyNext = true;
+
+  firstFormGroup: FormGroup;
+  secondFormGroup: FormGroup;
   accounts: string[];
   MetaCoin: any;
   Shop: any;
   Test: Number;
 
-  model = {
-    amount: 5,
-    receiver: '',
-    balance: 0,
-    account: '',
-    userName: '',
-    userEmail: '',
-    num: 0
-  };
+  displayedColumns: string[] = ['position', 'name', 'description', 'price', 'action'];
+  dataSource = ELEMENT_DATA;
 
+  account: string;
+  balance = 0;
   status = '';
+  purchasedProduct = 'Not Yet Purchased';
 
-  dataSource;
-  displayedColumns = [];
-
-  columnNames = [
-    {
-      id: 'position',
-      value: 'No.',
-    },
-    {
-      id: 'name',
-      value: 'Name',
-    },
-    {
-      id: 'description',
-      value: 'description',
-    },
-    {
-      id: 'price',
-      value: 'price',
-    }
-  ];
-
-  constructor(private web3Service: Web3Service, private matSnackBar: MatSnackBar) {
+  constructor(private web3Service: Web3Service, private matSnackBar: MatSnackBar, private _formBuilder: FormBuilder) {
     console.log('Constructor: ' + web3Service);
   }
 
-  ngOnInit(): void {
+  ngOnInit() {
     console.log('OnInit: ' + this.web3Service);
     console.log(this);
     this.watchAccount();
@@ -70,19 +63,33 @@ export class MetaSenderComponent implements OnInit {
         deployed.Transfer({}, (error, event) => {
           console.log('Transfer event came in, refreshing balance');
           console.log(event);
+          this.setStatus('Order completed');
           this.refreshBalance();
+          this.buyNext = false;
+          this.secondFormGroup.controls['valid'].setErrors(null);
+        });
+        deployed.Register({}, (error, event) => {
+          console.log('Register event came in');
+          console.log(event);
+          this.setStatus('Register success');
+          this.registerNext = false;
         });
       });
     });
 
-    this.displayedColumns = this.columnNames.map(x => x.id);
-    this.createTable();
+    this.firstFormGroup = this._formBuilder.group({
+      userName: ['', Validators.required],
+      userEmail: ['', Validators.required]
+    });
+    this.secondFormGroup = this._formBuilder.group({
+      valid: ['', Validators.required]
+    });
   }
 
   watchAccount() {
     this.web3Service.accountsObservable.subscribe((accounts) => {
       this.accounts = accounts;
-      this.model.account = accounts[0];
+      this.account = accounts[0];
       this.refreshBalance();
     });
   }
@@ -91,47 +98,18 @@ export class MetaSenderComponent implements OnInit {
     this.matSnackBar.open(status, null, {duration: 3000});
   }
 
-  async sendCoin() {
-    if (!this.Shop) {
-      this.setStatus('Shop is not loaded, unable to send transaction');
-      return;
-    }
-    this.setStatus('Initiating transaction... (please wait)');
-    try {
-      const deployedShop = await this.Shop.deployed();
-
-      const amount = this.model.amount;
-      const receiver = await deployedShop.owner.call();
-      console.log('Sending coins ' + amount + ' to ' + receiver);
-
-      const transaction = await deployedShop.buyProduct.sendTransaction(receiver, amount, {from: this.model.account});
-
-      if (!transaction) {
-        this.setStatus('Transaction failed!');
-      } else {
-        this.setStatus('Transaction complete!');
-      }
-    } catch (e) {
-      console.log(e);
-      this.setStatus('Error sending coin; see log.');
-    }
-  }
-
   async refreshBalance() {
     console.log('Refreshing balance');
 
     try {
-      const deployedShop = await this.Shop.deployed();
-      console.log(deployedShop);
-      console.log('Account', this.model.account);
-      await this.web3Service.web3.eth.getBalance(this.model.account).then(value => {
-        this.model.balance = this.web3Service.web3.utils.fromWei(value, 'ether');
+      console.log('Account', this.account);
+      const that = this;
+      await this.web3Service.getAccountInfo().then(function(acctInfo: any) {
+        that.balance = acctInfo.balance;
+      }).catch(function(error) {
+        console.log(error);
       });
-      console.log(this.web3Service.web3);
-      console.log('Found balance: ' +  this.model.balance);
-
-      const owner = await deployedShop.owner.call();
-      console.log('owner = ' + owner);
+      console.log('Found balance: ' +  that.balance);
     } catch (e) {
       console.log(e);
       this.setStatus('Error getting balance; see log.');
@@ -139,48 +117,48 @@ export class MetaSenderComponent implements OnInit {
   }
 
   async userRegistration() {
+    try {
+      const deployedShop = await this.Shop.deployed();
+      console.log(deployedShop);
 
+      const userName = this.firstFormGroup.get('userName').value;
+      const userEmail = this.firstFormGroup.get('userEmail').value;
+      const regResult = await deployedShop.createAccount(userName, userEmail, {from: this.account});
+      console.log('Register result = ' + regResult);
+    } catch (e) {
+      console.log(e);
+      this.setStatus('Error registration; see log.');
+    }
   }
 
-  setAmount(e) {
-    console.log('Setting amount: ' + e.target.value);
-    this.model.amount = e.target.value;
+  async buyProduct(numProd, amountEth, nameOfProduct) {
+    if (!this.Shop) {
+      this.setStatus('Shop is not loaded, unable to send transaction');
+      return;
+    }
+    this.setStatus('Initiating transaction... (please wait)');
+    try {
+      const deployedShop = await this.Shop.deployed();
+      const amount = amountEth;
+      const prodNum = numProd;
+      const receiver = await deployedShop.owner.call();
+      console.log('Sending coins ' + amount + ' to ' + receiver);
+
+      const transaction = await deployedShop.buyProduct(prodNum,
+        {
+          from: this.account,
+          value: this.web3Service.web3.utils.toWei(amount, 'ether')
+        });
+
+      if (!transaction) {
+        this.setStatus('Transaction failed!');
+      } else {
+        this.purchasedProduct = nameOfProduct;
+        this.setStatus('Transaction complete!');
+      }
+    } catch (e) {
+      console.log(e);
+      this.setStatus('Error sending coin; see log.');
+    }
   }
-
-  setReceiver(e) {
-    console.log('Setting receiver: ' + e.target.value);
-    this.model.receiver = e.target.value;
-  }
-
-  setUserName(e) {
-    console.log('Setting user name: ' + e.target.value);
-    this.model.userName = e.target.value;
-  }
-
-  setUserEmail(e) {
-    console.log('Setting user email: ' + e.target.value);
-    this.model.userEmail = e.target.value;
-  }
-
-  setNum(e) {
-    console.log('Setting num: ' + e.target.value);
-    this.model.num = e.target.value;
-  }
-
-  createTable() {
-    const tableArr: Element[] = [
-      { position: 1, name: 'Standard', description: '50 GB available space', price: '1 eth' },
-      { position: 2, name: 'Advanced', description: '500 GB available space', price: '2 eth' },
-      { position: 3, name: 'Enterprise', description: '5 TB available space', price: '3 eth' }
-    ];
-
-    this.dataSource = new MatTableDataSource(tableArr);
-  }
-}
-
-export interface Element {
-  position: number;
-  name: string;
-  description: string;
-  price: string;
 }
