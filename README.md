@@ -1,2 +1,2 @@
 # angular-blockchain
-Angular SPA with Blockchain integration (web3.js)
+Angular SPA with Ethereum smart contract (web3.js)
